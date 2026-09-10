@@ -1,0 +1,32 @@
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: partner-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/PartnerIntegration.Api/Dockerfile
+    container_name: partner-api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__QueueName: partner-transactions
+
+      PartnerVerification__BaseUrl: http://127.0.0.1:8080/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
